@@ -1,0 +1,4 @@
+aiohttp>=3.7.4.post0
+asyncio>=3.4.3
+asyncssh>=2.5.0
+icmplib>=2.1.1

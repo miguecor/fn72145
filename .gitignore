@@ -1,0 +1,6 @@
+*.log
+*.zip
+/.idea
+/__pycache__
+/venv
+
