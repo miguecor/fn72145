@@ -119,6 +119,17 @@ def get_logger():
 log = get_logger()
 
 
+def error_handler(fn):
+    async def wrapper(*args, **kwargs):
+        try:
+            await fn(*args, **kwargs)
+        except Exception as e:
+            log.error(str(e))
+            traceback.print_exc(file=sys.stdout)
+
+    return wrapper
+
+
 async def apic_login(session: ClientSession, url: str):
     log.info(f'Authenticating to the APIC at {url.strip("/api")}')
     credentials = {'aaaUser': {'attributes': {'name': USR, 'pwd': PWD}}}
@@ -254,8 +265,6 @@ async def confirm_affected_device(
                                 log.info(f'{node} supslot-{slot} is not affected by fn72145.')
 
 
-
-
 async def verify_devices(session: ClientSession, url: str) -> list:
     log.info(f'Querying APIC at {url.strip("/api")} '
              f'for affected SSDs on switches.')
@@ -266,7 +275,7 @@ async def verify_devices(session: ClientSession, url: str) -> list:
     model_str = ', '.join(FLASH_MODELS)
     try:
         async with session.get(
-            url +  f'/class/eqptFlash.json?{query_filter}',
+            url + f'/class/eqptFlash.json?{query_filter}',
             ssl=False
         ) as response:
             assert response.status == 200
@@ -328,7 +337,6 @@ async def verify_apic_faults(session, url):
                     log.critical(f'Fault code(s) {code_str} found at '
                                  f'{url.strip("/api")} on {affected_node[1]} '
                                  f'{affected_node[2]}.')
-        # print(faults)
 
     except AssertionError as e:
         log.warning(f'Unable to retrieve fault information on APIC at '
@@ -461,6 +469,7 @@ async def get_count_and_data(response: ClientResponse) -> tuple:
     assert response.status == 200
     json_res = await response.json()
     total_count, imdata = int(json_res['totalCount']), json_res['imdata']
+
     return total_count, imdata
 
 
@@ -506,6 +515,7 @@ async def get_ssh_ip(session: ClientSession, url: str, node: str) -> dict:
         print(str(e), 'This was not good')
 
 
+@error_handler
 async def main():
     try:
         jar = aiohttp.CookieJar(unsafe=True)
